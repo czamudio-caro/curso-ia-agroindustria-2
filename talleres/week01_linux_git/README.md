@@ -59,3 +59,7 @@ git push
 Edita scripts/setup_proyecto.sh y agrega al reporte:
 
 Top 3 sensores con más registros (usa cut | sort | uniq -c | sort -nr | head -n 3).
+
+# Ejercicio
+
+Realiza los ejercicios propuestos en el pdf, y deja evidencia del trabajo en tu git en la carpeta `talleres/week01_linux_git/workspace`
