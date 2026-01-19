@@ -93,16 +93,20 @@ Agro-IA (full-docs): cuando necesites compilar PDFs con LaTeX.
 ## 📂 Estructura del repositorio
 ```text
 curso-ia-agroindustria-2/
-├─ docs/
-│  ├─ manual/                 # Manuales LaTeX por semana
-│  └─ slides/                 # Presentaciones
-├─ talleres/                  # Práctica guiada (starter code + README)
-├─ entregables/               # Actividades evaluables
-├─ cases/                     # Casos por carrera (datasets + contexto)
-├─ data/                      # Datos (no se versiona raw/)
-├─ notebooks/                 # Jupyter exploratorios
-├─ src/                       # Código reusable
-└─ scripts/                   # Automatización
+├── data/                     # Almacenamiento de datos (ignorado por git)
+│   ├── raw/                  # Datos crudos (inmutables)
+│   └── processed/            # Datos limpios/procesados
+├── docs/                     # Documentación académica
+│   ├── semana01/             # Manuales y guías de la Semana 1
+│   ├── semana02/             # Manuales y guías de la Semana 2
+│   └── ...
+├── reports/                  # Reportes generados automáticamente (logs, validaciones)
+├── scripts/                  # Scripts de automatización Bash/Python
+├── talleres/                 # Espacios de trabajo para ejercicios prácticos
+│   ├── talleres_semana_01/
+│   └── ...
+├── .gitignore                # Configuración de exclusiones de Git
+└── README.md                 # Entrada principal al proyecto
 ```
 
 ### 📖 Semana 1 (arranque)
@@ -117,7 +121,7 @@ Para descargar los datos y validar el entorno, ejecuta:
 
 ```bash
 ./scripts/setup_proyecto.sh
-
+```
 
 ## 📄 Licencia
 
