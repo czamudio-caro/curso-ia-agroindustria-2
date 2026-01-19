@@ -819,6 +819,55 @@ Luego ejecútalo desde la raíz del proyecto:
 \texttt{./scripts/setup\_proyecto.sh}
 \end{warningbox}
 
+% =====================================================
+% DESAFÍO DE ANÁLISIS (MANUAL)
+% =====================================================
+\section{Desafío: Minería de Datos con Bash}
+
+Una vez ejecutado tu script de setup (\texttt{setup\_proyecto.sh}), tendrás los datos listos en \texttt{data/raw/datos\_sensores.csv}.
+Ahora deberás demostrar tu habilidad extrayendo información clave usando solo la terminal.
+
+\subsection{Instrucciones}
+Resuelve los siguientes retos y documenta los comandos que usaste en tu archivo \texttt{README.md}, bajo una nueva sección titulada \textbf{"Resultados del Análisis"}.
+
+\begin{agrobox}{Reto 1: Exploración de Especies}
+¿Cuántas muestras de cada especie contiene el archivo?
+\begin{itemize}
+    \item Objetivo: Obtener una tabla de frecuencias.
+    \item Pista: Usa el pipeline \texttt{cut} $\rightarrow$ \texttt{sort} $\rightarrow$ \texttt{uniq -c}.
+    \item La columna de especies es la número 5.
+\end{itemize}
+\end{agrobox}
+
+\begin{agrobox}{Reto 2: Detección de Anomalías (Outliers)}
+Encontremos las flores inusualmente grandes.
+\begin{itemize}
+    \item Objetivo: Mostrar las 5 filas con el \textbf{sépalo más largo} (columna 1).
+    \item Pista: Recuerda usar \texttt{sort -t',' -k1 -nr}.
+\end{itemize}
+\end{agrobox}
+
+\begin{agrobox}{Reto 3: Filtrado Avanzado (awk)}
+Filtra y cuenta cuántas flores cumplen la condición de ser \textbf{"gigantes"}.
+\begin{itemize}
+    \item Condición: \texttt{petal\_length} (columna 3) mayor a \textbf{6.0} cm.
+    \item Comando sugerido:
+    \texttt{awk -F',' '\$3 > 6.0 \{print \$0\}' data/raw/datos\_sensores.csv | wc -l}
+    \item Pregunta para el reporte: ¿Cuántas flores cumplen esta condición?
+\end{itemize}
+\end{agrobox}
+
+\begin{infobox}{Ejemplo de documentación en README.md}
+Tu \texttt{README.md} debería verse así al final:
+
+\texttt{\# Resultados del Análisis}\\
+\texttt{1. Conteo de especies:}\\
+\texttt{   - 50 setosa}\\
+\texttt{   - 50 versicolor...}\\
+\texttt{   (Comando usado: cut -d',' -f5 ...)}\\
+\dots
+\end{infobox}
+
 \subsection{Entrega}
 
 \begin{itemize}
@@ -830,77 +879,97 @@ Luego ejecútalo desde la raíz del proyecto:
 \newpage
 
 % =====================================================
-% AUTOESTUDIO
+% MATERIAL DE AUTOESTUDIO Y REFERENCIA
 % =====================================================
-\section*{Material de Autoestudio}
+\section*{Material de Autoestudio y Profundización}
 
-\subsection*{Fase 4: Estructura de Proyectos Reproducibles}
+Esta sección resume las herramientas clave vistas y prepara el terreno para el análisis avanzado con Python.
 
-Una buena estructura de proyecto permite que cualquier persona entienda dónde están los datos, el código, los modelos y los reportes.
+\subsection*{Resumen de Comandos (Cheat Sheet)}
 
-\begin{verbatim}
-proyecto_ia/
-├── data/
-│   ├── raw/          # datos brutos (no limpios)
-│   └── processed/    # datos listos para análisis/modelado
-├── scripts/          # scripts de limpieza, descarga, validación
-├── notebooks/        # cuadernos exploratorios (Jupyter)
-├── models/           # modelos entrenados y artefactos
-├── reports/          # informes, figuras y tablas
-└── README.md         # descripción del proyecto
-\end{verbatim}
+Guarda esta referencia rápida. Combinar estos comandos te permite hacer una primera exploración de datos en segundos.
 
-\subsection*{Fase 5: Integración con Python}
+\begin{itemize}
+    \item \textbf{Exploración rápida:}
+    \begin{itemize}
+        \item \texttt{head -n 5 file.csv}: Ver encabezados y primeras filas.
+        \item \texttt{wc -l file.csv}: Contar tamaño (filas).
+        \item \texttt{grep "ERROR" file.log}: Buscar textos específicos.
+    \end{itemize}
+    
+    \item \textbf{Filtrado y Selección (Columns):}
+    \begin{itemize}
+        \item \texttt{cut -d',' -f1,3}: Extraer columnas 1 y 3.
+        \item \texttt{awk -F',' '\$3 > 50 \{print \$0\}'}: Filtrar filas por condición numérica (columna 3 > 50).
+    \end{itemize}
+    
+    \item \textbf{Agregación y Estadística (Bash puro):}
+    \begin{itemize}
+        \item \texttt{sort | uniq -c}: Tabla de frecuencias (histograma de texto).
+        \item \texttt{sort -nr | head}: Top 10 valores más altos.
+    \end{itemize}
+    
+    \item \textbf{Git (Ciclo de vida):}
+    \begin{itemize}
+        \item \texttt{git status} $\rightarrow$ \texttt{git add .} $\rightarrow$ \texttt{git commit -m "msg"}.
+        \item \texttt{git log --oneline --graph}: Ver la historia del árbol.
+    \end{itemize}
+\end{itemize}
 
-Puedes llamar Python desde la terminal para análisis más avanzados:
+\subsection*{Profundización: Estructuras de Proyecto (Cookiecutter)}
+
+La estructura que creaste (\texttt{data, scripts, reports}) no es arbitraria. Sigue el estándar \textit{Cookiecutter Data Science}, usado en la industria para garantizar que los proyectos sean reproducibles.
+
+\begin{itemize}
+    \item \textbf{data/raw}: Inmutable. Jamás edites un archivo aquí manualmente.
+    \item \textbf{data/processed}: El resultado de limpiar \texttt{raw}. Si borras esta carpeta, deberías poder regenerarla corriendo tus scripts.
+    \item \textbf{reports}: El conocimiento generado (gráficos, PDFs, tablas).
+\end{itemize}
+
+\subsection*{El Puente a Python: Cuando Bash no es suficiente}
+
+Bash es excelente para \textit{pipes} y limpieza rápida, pero para estadística compleja (promedios, desviaciones, gráficos), Python es mejor.
+
+Mira lo fácil que es obtener un resumen estadístico completo con la librería \textbf{Pandas} (que veremos en profundidad la próxima semana):
 
 \begin{lstlisting}[style=bashstyle]
-# Ejecutar análisis directo
-python - << EOF
-import pandas as pd
-df = pd.read_csv("data/raw/sensores.csv")
-print(df.describe())
-print("Temperatura promedio:", df["temperatura"].mean())
-EOF
+# "One-liner" de Python invocado desde Bash
+# Calcula promedio, min, max y cuartiles de TODAS las columnas numéricas
+python3 -c "import pandas as pd; df = pd.read_csv('data/raw/datos_sensores.csv'); print(df.describe())"
 \end{lstlisting}
 
-\subsection*{Entornos Virtuales de Python}
-
-\begin{lstlisting}[style=bashstyle]
-# Crear entorno virtual
-python -m venv ia_env
-
-# Activar (Linux/macOS)
-source ia_env/bin/activate
-
-# Instalar dependencias
-pip install pandas numpy matplotlib
-
-# Congelar versiones
-pip freeze > requirements.txt
-
-# Desactivar
-deactivate
-\end{lstlisting}
+\begin{infobox}{Preparación para Semana 2}
+Para la próxima clase, asegúrate de tener tu entorno Python listo.
+\begin{enumerate}
+    \item Crea un entorno: \texttt{python -m venv ia\_env}
+    \item Actívalo: \texttt{source ia\_env/bin/activate} (Linux/Mac) o \texttt{ia\_env\\Scripts\\activate} (Windows).
+    \item Instala Pandas: \texttt{pip install pandas numpy}
+\end{enumerate}
+\end{infobox}
 
 \appendix
 
-\section*{Anexo: Alias de Seguridad}
+\section*{Anexo: Alias de Productividad}
+
+Copia estos alias en tu archivo de configuración (\texttt{\textasciitilde/.bashrc}) para trabajar más rápido y seguro:
 
 \begin{lstlisting}[style=bashstyle]
-# Agregar a ~/.bashrc o ~/.zshrc
+# Seguridad (pregunta antes de borrar/sobrescribir)
 alias rm='rm -i'
 alias cp='cp -i'
 alias mv='mv -i'
-alias ll='ls -lh'
-alias la='ls -lha'
+
+# Listados útiles
+alias ll='ls -lh'      # Lista detallada con tamaño humano
+alias la='ls -lha'     # Incluye archivos ocultos
+
+# Git rápido
 alias gs='git status'
-alias gl='git log --oneline --graph'
+alias gl='git log --oneline --graph --all'
 \end{lstlisting}
 
 \begin{infobox}{Siguiente Nivel}
-En Semana 2 aprenderás vectorización con NumPy y procesamiento eficiente de datasets grandes (>1M filas).
-Docker y despliegue se cubren en Semana 7-8 (MLOps).
+En la \textbf{Semana 2}, dejaremos atrás el procesamiento de texto línea por línea y pasaremos a la \textbf{vectorización con NumPy}: cómo procesar matrices de millones de datos en milisegundos usando el poder matemático de Python.
 \end{infobox}
 
 \end{document}
