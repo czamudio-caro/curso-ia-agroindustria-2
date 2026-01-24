@@ -146,31 +146,40 @@ Este manual introduce Pandas desde la perspectiva de la ingeniería de datos apl
 
 \tableofcontents
 \newpage
+\section*{Prefacio: Del Campo a la Mesa (y al Cloud)}
 
-\section*{Prefacio: Del Campo a la Mesa}
+En la Semana 02 trabajaste con NumPy procesando matrices numéricas homogéneas (humedad del suelo en 365 días × 100 zonas). Ese enfoque es excelente para cálculo matricial puro, pero \textbf{la agroindustria 4.0 genera datos heterogéneos y desordenados}.
 
-En la Semana 02 trabajaste con NumPy procesando matrices numéricas homogéneas (humedad del suelo en 365 días × 100 zonas). Ese enfoque funciona para sensores agrícolas, pero \textbf{la agroindustria moderna genera datos más complejos}:
+Un ingeniero de datos en la industria real se enfrenta a tres desafíos que NumPy no resuelve por sí solo:
 
 \begin{itemize}
-    \item \textbf{Trazabilidad}: Cada lote de café procesado tiene ID (string), timestamp de entrada/salida, temperatura de tostado (float), operario responsable (categoría), resultado QA (booleano).
-    \item \textbf{Series temporales irregulares}: Sensores IoT envían datos cada 30 segundos, pero fallan aleatoriamente.
-    \item \textbf{Relaciones entre tablas}: Para rastrear un recall de producto, debes cruzar 3 datasets: \texttt{lotes\_producidos}, \texttt{pruebas\_laboratorio}, \texttt{despachos\_clientes}.
+    \item \textbf{Heterogeneidad de Tipos (Mixed Data Types)}: A diferencia de una matriz matemática, un registro industrial mezcla texto, números y tiempo.
+    \\ \textit{Ejemplo:} Un lote de café tiene ID (\texttt{string}), timestamp de entrada (\texttt{datetime}), temperatura (\texttt{float}), operario (\texttt{category}) y aprobación de calidad (\texttt{bool}).
+
+    \item \textbf{Datos Sucios y Series Irregulares (Handling Missing Data)}: En el mundo real, los sensores fallan. Si un termómetro IoT envía datos cada 30 segundos pero se apaga por un corte de luz, tendrás "huecos" temporales.
+    \\ \textit{Reto Pro:} No puedes simplemente borrar esos huecos; debes decidir si imputar el valor (rellenarlo estadísticamente) o alertar al sistema.
+
+    \item \textbf{Relaciones Relacionales (Merging \& Joins)}: La información nunca está en una sola tabla. Para gestionar un \textit{Recall} (retiro de producto por seguridad), debes cruzar trazabilidad compleja: \texttt{lotes\_producidos} $\leftrightarrow$ \texttt{pruebas\_laboratorio} $\leftrightarrow$ \texttt{despachos\_clientes}.
 \end{itemize}
 
-NumPy no está diseñado para esto. \textbf{Pandas sí}.
+NumPy no está diseñado para bases de datos relacionales. \textbf{Pandas sí}. Es la herramienta estándar para construir lo que en la industria llamamos \textit{ETL (Extract, Transform, Load)}.
 
-\begin{industrybox}{Contexto Industrial}
-Imagina una planta procesadora de alimentos que opera 24/7 en 3 turnos, con 5 líneas de producción y 1200 lotes/mes. Cada lote genera:
+\begin{industrybox}{Contexto Industrial: Por qué Excel no es suficiente}
+Imagina una planta procesadora de alimentos que opera 24/7 en 3 turnos. Aunque el volumen de datos parezca manejable al inicio, la complejidad escala exponencialmente:
+
 \begin{itemize}
-    \item 8 variables de proceso (temperatura, presión, pH, humedad, tiempo)
-    \item 12 pruebas de laboratorio (microbiología, físico-químicas)
-    \item Metadatos de trazabilidad (proveedor, lote de materia prima, destino)
+    \item \textbf{Volumen:} 14,400 lotes/año × 20 variables = 288,000 puntos de datos anuales.
+    \item \textbf{Historico:} En 5 años (requerido por ley), son casi \textbf{1.5 millones de registros}.
+    \item \textbf{El Riesgo:} En Excel, un error de "copiar y pegar" o una fórmula arrastrada mal puede costar una certificación de calidad.
 \end{itemize}
 
-\textbf{Total}: 14,400 lotes/año × 20 variables = 288,000 datos/año.
-
-\textit{No puedes analizar esto en Excel. Necesitas código profesional.}
+\textbf{La diferencia clave:} Un script de Pandas es \textbf{auditable} y \textbf{reproducible}. Si un auditor de la FDA (Food and Drug Administration) pide explicar un cálculo, puedes mostrar el código. En una hoja de cálculo manual, eso es imposible.
 \end{industrybox}
+
+\begin{sciencebox}{Concepto Avanzado: El Gemelo Digital (Digital Twin)}
+En este curso no solo "analizaremos tablas". Vamos a construir una representación digital de la planta.
+Nuestro DataFrame de Pandas actuará como un \textbf{Digital Twin} de bajo nivel: un espejo matemático que refleja el estado exacto de la producción, permitiéndonos detectar anomalías (ej. fermentación excesiva) antes de que el producto físico se dañe.
+\end{sciencebox}
 
 \newpage
 
@@ -178,7 +187,9 @@ Imagina una planta procesadora de alimentos que opera 24/7 en 3 turnos, con 5 l�
 
 \subsection{La Anatomía de un DataFrame}
 
-Un DataFrame es una \textbf{tabla en memoria RAM} con índice explícito y columnas etiquetadas. A diferencia de NumPy (donde accedes por posición), Pandas permite consultas tipo SQL.
+Un DataFrame es una \textbf{tabla en memoria RAM} con índice explícito y columnas etiquetadas, similar a una tabla SQL, pero optimizada para análisis en Python.[web:18][web:19] En ingeniería de datos lo usamos como ``mini base de datos en memoria'' para aplicar transformaciones, validar la calidad y luego escribir resultados hacia sistemas más grandes (SQL, data lakes, etc.).[web:20][web:21][web:29]
+
+A diferencia de NumPy (donde accedes por posición), Pandas permite consultas tipo SQL.
 
 \begin{center}
 \begin{tikzpicture}[
@@ -198,6 +209,8 @@ Un DataFrame es una \textbf{tabla en memoria RAM} con índice explícito y colum
     \draw[arrow] (columns) -- (dtypes) node[midway, right, font=\tiny] {Especifica tipos};
 \end{tikzpicture}
 \end{center}
+
+La parte más subestimada por principiantes son los \textbf{dtypes}: definen si una columna se comporta como número, fecha, texto o categoría.[web:18][web:19] Elegir bien los tipos de datos es el primer paso hacia un código más rápido, con menos errores y más cercano a los estándares de ingeniería profesional.[web:23][web:24]
 
 \textbf{Diferencia clave con NumPy}:
 \begin{itemize}
@@ -222,6 +235,8 @@ Uso típico & Una medición & Dataset completo \\
 \end{tabular}
 \caption{Comparación Series-DataFrame}
 \end{table}
+
+En proyectos pequeños puedes trabajar solo con DataFrames, pero en proyectos industriales es común combinar \textbf{Series} para cálculos rápidos (estadísticos o de control) y \textbf{DataFrames} como capa principal de integración de datos de múltiples sistemas (SCADA, LIMS, ERP).[web:25][web:31]
 
 \begin{lstlisting}[language=Python, caption={Crear Series y DataFrame desde código}]
 import pandas as pd
@@ -248,19 +263,22 @@ print(df.dtypes)
 
 \subsection{Carga de Datos Industriales}
 
+Desde la perspectiva de ingeniería de datos, este paso se conoce como \textbf{ingestión de datos}: recibir información cruda desde sistemas operativos (OT) y sistemas de negocio (IT) y convertirla en DataFrames consistentes para análisis posterior.[web:25][web:28]
+
 En la industria, los datos vienen de múltiples fuentes:
 
 \begin{itemize}
-    \item \textbf{SCADA} (sistemas de control): CSV/Excel con timestamps
+    \item \textbf{SCADA} (sistemas de control): CSV/Excel exportados desde sistemas que hablan protocolos industriales (OPC UA, Modbus, MQTT), casi siempre con timestamps.[web:25][web:28]
     \item \textbf{LIMS} (laboratorio): Resultados en archivos Excel con hojas múltiples
-    \item \textbf{ERP} (SAP/Oracle): Exportaciones CSV con separadores raros
+    \item \textbf{ERP} (SAP/Oracle): Exportaciones CSV con separadores raros y codificaciones regionales
     \item \textbf{Sensores IoT}: JSON desde APIs REST
 \end{itemize}
 
 \begin{lstlisting}[language=Python, caption={Carga robusta de datos industriales}]
 import pandas as pd
+import requests
 
-# 1. CSV con problemas comunes
+# 1. CSV con problemas comunes (SCADA)
 df_scada = pd.read_csv(
     'datos_scada.csv',
     sep=';',                      # Separador europeo
@@ -271,18 +289,23 @@ df_scada = pd.read_csv(
     dtype={'id_lote': str}        # Forzar ID como texto (evita 001 → 1)
 )
 
-# 2. Excel con múltiples hojas
+# 2. Excel con múltiples hojas (LIMS)
 df_lab = pd.read_excel(
     'resultados_laboratorio.xlsx',
     sheet_name='Microbiologia',   # Hoja específica
-    header=2,                      # La fila 3 tiene los títulos
-    usecols='A:F'                  # Solo columnas A-F
+    header=2,                     # La fila 3 tiene los títulos
+    usecols='A:F'                 # Solo columnas A-F
 )
 
 # 3. JSON desde API de sensor IoT
-import requests
 response = requests.get('https://api.sensores.com/temperatura')
 df_temp = pd.DataFrame(response.json()['data'])
+
+# Buen hábito de ingeniero de datos:
+# después de cargar, siempre revisa esquema y tipos
+print(df_scada.info())     # Ver columnas, tipos y nulos
+print(df_lab.head())       # Ver las primeras filas
+print(df_temp.dtypes)      # Ver tipos inferidos en JSON
 \end{lstlisting}
 
 \newpage
@@ -309,6 +332,8 @@ Confundir \texttt{.loc[]} (etiquetas) con \texttt{.iloc[]} (posiciones). Esto ca
 \end{tabular}
 \caption{Métodos de indexación en Pandas}
 \end{table}
+
+En ingeniería de datos industrial, el 80\% de los errores de producción provienen de indexación incorrecta.[web:23] Elegir el método correcto no es solo sintaxis — es una decisión de \textbf{robustez} y \textbf{mantenibilidad}.[web:26][web:29]
 
 \begin{lstlisting}[language=Python, caption={Ejemplos de indexación}]
 import pandas as pd
@@ -337,11 +362,15 @@ rango = df.loc[0:2, 'temp_pasteurizacion']  # Filas 0-2, una columna
 # 3. SELECCIÓN POR POSICIÓN (.iloc)
 primera_celda = df.iloc[0, 0]     # 'L001'
 subcuadro = df.iloc[0:2, 1:3]     # 2 filas × 2 columnas
+
+# Hábito profesional: siempre verifica tu selección
+print("Tipo de temps:", type(temps))  # <class 'pandas.core.series.Series'>
+print("Tipo de subset:", type(subset)) # <class 'pandas.core.frame.DataFrame'>
 \end{lstlisting}
 
 \subsection{Filtrado Booleano (Máscaras)}
 
-El poder real de Pandas está en las \textbf{consultas vectorizadas}. No uses bucles \texttt{for} — usa máscaras booleanas.
+El poder real de Pandas está en las \textbf{consultas vectorizadas}. No uses bucles \texttt{for} — usa máscaras booleanas. Esta es la base de la eficiencia en pipelines de datos industriales.[web:23][web:26]
 
 \begin{lstlisting}[language=Python, caption={Filtrado avanzado para control de calidad}]
 import pandas as pd
@@ -368,7 +397,22 @@ nocturnos = df[df['id_lote'].str.contains('NOCHE')]
 # 5. QUERY (sintaxis SQL-like)
 # Nota: Solo funciona si nombres de columnas no tienen espacios
 criticos = df.query('temp_C > 76 and resultado == "Rechazado"')
+
+# Hábito de ingeniero: Verificar resultados
+print(f"Lotes rechazados: {len(rechazados)}")
+print(f"Problemas críticos: {len(problemas_criticos)}")
 \end{lstlisting}
+
+\begin{industrybox}{¿Por qué las máscaras son la base de Data Engineering?}
+En la industria, el filtrado no es solo para análisis — es para \textbf{alertas en tiempo real}. Imagina un sistema que:
+\begin{enumerate}
+    \item Carga datos cada 5 minutos desde sensores IoT
+    \item Aplica una máscara booleana: \texttt{df[df['temp'] > 80]}
+    \item Si encuentra resultados, envía alerta SMS al supervisor
+\end{enumerate}
+
+Esto se ejecuta 24/7 sin intervención humana. Un bucle \texttt{for} no sería confiable para esto.
+\end{industrybox}
 
 \begin{sciencebox}{Complejidad Computacional de Máscaras}
 Una máscara booleana \texttt{df['temp'] > 72} tiene complejidad \( O(n) \) donde \( n \) es el número de filas. Internamente:
@@ -378,8 +422,22 @@ Una máscara booleana \texttt{df['temp'] > 72} tiene complejidad \( O(n) \) dond
     \item El filtrado \texttt{df[mask]} usa fancy indexing de NumPy
 \end{enumerate}
 
-Para un DataFrame de 1M filas, esto toma $\sim$10ms. Un bucle \texttt{for} equivalente tomaría $\sim$2 segundos (200x más lento).
+Para un DataFrame de 1M filas, esto toma $\sim$10ms. Un bucle \texttt{for} equivalente tomaría $\sim$2 segundos (200x más lento).[web:23]
 \end{sciencebox}
+
+\begin{conceptbox}{Buena práctica \#2: Nombres descriptivos para filtros}
+En lugar de:
+\begin{lstlisting}[language=Python]
+problemas = df[df['temp'] > 80]
+\end{lstlisting}
+
+Usa:
+\begin{lstlisting}[language=Python]
+alerta_temp_alta = df[df['temp_pasteurizacion'] > 80]
+\end{lstlisting}
+
+Cuando revises el código en 6 meses (o un colega lo revise), sabrás inmediatamente qué representa esa variable.
+\end{conceptbox}
 
 \newpage
 
@@ -397,6 +455,8 @@ Si una columna numérica aparece como \texttt{dtype: object}, significa que Pand
     \item Formato de número europeo: "3,14" en lugar de "3.14"
     \item Espacios en blanco: " 25.5 " no se convierte automáticamente
 \end{itemize}
+
+\textbf{Este es el primer paso de Data Quality Engineering:} asegurar que cada columna tenga el \texttt{dtype} correcto desde la ingestión. Un ingeniero de datos profesional nunca deja pasar datos con tipos incorrectos a la siguiente etapa del pipeline.[web:23][web:26]
 
 \begin{lstlisting}[language=Python, caption={Diagnóstico y corrección de tipos}]
 import pandas as pd
@@ -425,11 +485,14 @@ print(df.dtypes)
 # presion        float64  ← ✓ Corregido
 
 print(df['temperatura'].isna().sum())  # Contar cuántos NaN se generaron
+
+# Hábito pro: Registrar el proceso de limpieza
+print(f"Convertidos {df['temperatura'].isna().sum()} valores inválidos a NaN")
 \end{lstlisting}
 
 \subsection{Tratamiento de Valores Faltantes}
 
-En la industria alimenticia, \textbf{un dato faltante puede significar un fallo crítico}. No siempre es correcto rellenar con el promedio.
+En la industria alimenticia, \textbf{un dato faltante puede significar un fallo crítico}. No siempre es correcto rellenar con el promedio. La decisión debe basarse en el \textbf{conocimiento del dominio} y los requisitos de trazabilidad (ISO 22000, HACCP).[web:23]
 
 \begin{table}[h]
 \centering
@@ -465,7 +528,22 @@ df['sensor_falla'] = df['temp'].isna()  # Columna booleana de alertas
 
 # CASO 4: Eliminar filas con datos críticos faltantes
 df_limpio = df.dropna(subset=['ph', 'acidez'])  # Solo si faltan variables críticas
+
+# Hábito pro: Reporte de imputaciones
+print(f"Imputados por interpolación: {df['temp'].isna().sum()}")
+print(f"Sensores con fallas: {df['sensor_falla'].sum()}")
 \end{lstlisting}
+
+\begin{industrybox}{Trazabilidad: Nunca pierdas el origen del dato}
+En sistemas certificados (HACCP, FDA), debes documentar:
+\begin{itemize}
+    \item ¿Cuántos valores faltaban originalmente?
+    \item ¿Qué método de imputación usaste?
+    \item ¿Qué umbrales configuraste?
+\end{itemize}
+
+Tu código de limpieza debe ser \textbf{auditable}. Un auditor debe poder reproducir exactamente el mismo resultado.
+\end{industrybox}
 
 \subsection{Detección de Outliers}
 
@@ -484,7 +562,7 @@ limite_inferior = Q1 - 1.5 * IQR
 limite_superior = Q3 + 1.5 * IQR
 
 outliers = df[(df['temp'] < limite_inferior) | (df['temp'] > limite_superior)]
-print(f"Detectados {len(outliers)} outliers")
+print(f"Detectados {len(outliers)} outliers estadísticos")
 
 # MÉTODO 2: Z-score (asume distribución normal)
 mean = df['temp'].mean()
@@ -498,15 +576,31 @@ outliers_zscore = df[np.abs(df['z_score']) > 3]
 # La temperatura de pasteurización NUNCA puede ser > 100°C
 errores_sensor = df[df['temp'] > 100]
 df.loc[df['temp'] > 100, 'temp'] = np.nan  # Marcar como faltante
+
+print(f"Errores físicos detectados: {len(errores_sensor)}")
+
+# Hábito pro: Guardar anomalías para auditoría
+df['es_outlier'] = np.abs(df['z_score']) > 3
+print(df['es_outlier'].value_counts())
 \end{lstlisting}
+
+\begin{conceptbox}{Jerarquía de detección de anomalías (Data Quality Engineering)}
+\begin{enumerate}
+    \item \textbf{Límites físicos} (temperatura > 100°C = error sensor)
+    \item \textbf{Reglas de negocio} (pH fuera de rango de pasteurización)
+    \item \textbf{Análisis estadístico} (IQR, Z-score)
+\end{enumerate}
+
+Siempre aplica en este orden. Los límites físicos son los más confiables.
+\end{conceptbox}
 
 \newpage
 
-\section{Capítulo IV: GroupBy — El Motor de Agregación}
+\section{Capítulo IV: GroupBy — El Motor de Agregación Industrial}
 
 \subsection{El Paradigma Split-Apply-Combine}
 
-\texttt{.groupby()} es la operación más importante en Pandas. Implementa el patrón \textit{split-apply-combine}:
+\texttt{.groupby()} es la operación más importante en Pandas. Implementa el patrón \textit{split-apply-combine}, que es el corazón de los \textbf{pipelines de agregación} en Data Engineering.[web:23][web:26]
 
 \begin{center}
 \begin{tikzpicture}[
@@ -525,7 +619,9 @@ df.loc[df['temp'] > 100, 'temp'] = np.nan  # Marcar como faltante
 \end{tikzpicture}
 \end{center}
 
-\begin{lstlisting}[language=Python, caption={Análisis de productividad por línea}]
+\textbf{Aplicación industrial}: Generar reportes de KPIs (Key Performance Indicators), calcular OEE (Overall Equipment Effectiveness) y detectar desviaciones de rendimiento por línea o turno.[web:23]
+
+\begin{lstlisting}[language=Python, caption={Análisis de productividad por línea (KPIs industriales)}]
 import pandas as pd
 
 # Dataset: 2000 lotes de café procesados en enero
@@ -534,34 +630,52 @@ df = pd.read_csv('produccion_cafe_enero.csv', parse_dates=['timestamp_inicio', '
 # Calcular duración de cada lote
 df['duracion_min'] = (df['timestamp_fin'] - df['timestamp_inicio']).dt.total_seconds() / 60
 
-# AGREGACIÓN 1: Productividad por línea
+# AGREGACIÓN 1: Productividad por línea (KPIs)
 productividad = df.groupby('linea').agg({
     'kg_procesados': 'sum',         # Total de kilos
-    'duracion_min': 'mean',          # Duración promedio
+    'duracion_min': ['mean', 'std'], # Estadísticas de tiempo
     'id_lote': 'count'               # Cantidad de lotes
-})
+}).round(2)
 
+productividad.columns = ['_'.join(col).strip() for col in productividad.columns]  # Nombres limpios
 print(productividad)
-# Output:
-#       kg_procesados  duracion_min  id_lote
-# linea
-# L1            45000          87.2      650
-# L2            38000          92.1      520
-# L3            42000          89.5      600
 
-# AGREGACIÓN 2: Rechazos por turno
+# AGREGACIÓN 2: Rechazos por turno (Matriz de control)
 rechazos = df.groupby(['turno', 'resultado']).size().unstack(fill_value=0)
 print(rechazos)
 
-# AGREGACIÓN 3: Múltiples estadísticas
-stats = df.groupby('linea')['duracion_min'].agg(['mean', 'std', 'min', 'max'])
+# AGREGACIÓN 3: Múltiples estadísticas con nombres personalizados
+stats = df.groupby('linea')['duracion_min'].agg(
+    media='mean',
+    desviacion='std',
+    minimo='min',
+    maximo='max'
+).round(1)
+
+print(stats)
+
+# Hábito pro: Verificar resultados
+print(f"Total de lotes procesados: {len(df)}")
+print(f"Total de kg procesados: {df['kg_procesados'].sum():,.0f}")
 \end{lstlisting}
+
+\begin{industrybox}{OEE (Overall Equipment Effectiveness) con GroupBy}
+El OEE es el KPI rey de la industria 4.0. Se calcula así:
+\[
+\text{OEE} = \text{Disponibilidad} \times \text{Rendimiento} \times \text{Calidad}
+\]
+
+Con GroupBy puedes calcularlo por línea, turno o mes:
+\begin{lstlisting}[language=Python]
+oee = df.groupby('linea').apply(lambda x: calcular_oee(x))
+\end{lstlisting}
+\end{industrybox}
 
 \subsection{GroupBy con Transformaciones}
 
-A veces no quieres reducir el DataFrame, sino \textbf{agregar columnas calculadas por grupo}.
+A veces no quieres reducir el DataFrame, sino \textbf{agregar columnas calculadas por grupo} que se mantienen alineadas con el índice original. Esto es esencial para \textbf{benchmarking} y normalización.[web:23]
 
-\begin{lstlisting}[language=Python, caption={Normalización por grupo}]
+\begin{lstlisting}[language=Python, caption={Normalización y ranking por grupo}]
 import pandas as pd
 
 df = pd.read_csv('lotes_produccion.csv')
@@ -570,14 +684,31 @@ df = pd.read_csv('lotes_produccion.csv')
 df['kg_promedio_linea'] = df.groupby('linea')['kg_procesados'].transform('mean')
 df['performance_relativo'] = (df['kg_procesados'] / df['kg_promedio_linea']) * 100
 
-# CASO 2: Ranking dentro de cada turno
-df['ranking_turno'] = df.groupby('turno')['kg_procesados'].rank(ascending=False)
+# CASO 2: Ranking dentro de cada turno (Top performers)
+df['ranking_turno'] = df.groupby('turno')['kg_procesados'].rank(ascending=False, method='min')
 
 # CASO 3: Detectar lotes atípicos (> 2 std de su grupo)
 df['media_linea'] = df.groupby('linea')['duracion_min'].transform('mean')
 df['std_linea'] = df.groupby('linea')['duracion_min'].transform('std')
-df['es_atipico'] = (df['duracion_min'] - df['media_linea']).abs() > (2 * df['std_linea'])
+df['es_atipico'] = np.abs(df['duracion_min'] - df['media_linea']) > (2 * df['std_linea'])
+
+# Verificación
+print(df[['linea', 'kg_procesados', 'performance_relativo', 'es_atipico']].head())
+print(f"Lotes atípicos detectados: {df['es_atipico'].sum()}")
 \end{lstlisting}
+
+\begin{conceptbox}{Transform vs Agg: La diferencia clave}
+\begin{itemize}
+    \item \texttt{.agg()} → Reduce filas (1 número por grupo)
+    \item \texttt{.transform()} → Mantiene todas las filas (1 valor por fila original)
+\end{itemize}
+
+\textit{Ejemplo:} Si tienes 100 lotes en la línea L1:
+\begin{itemize}
+    \item \texttt{agg('mean')} → 1 valor (la media de L1)
+    \item \texttt{transform('mean')} → 100 valores (la media de L1 repetida 100 veces)
+\end{itemize}
+\end{conceptbox}
 
 \begin{sciencebox}{Complejidad de GroupBy}
 Internamente, \texttt{.groupby()} usa un algoritmo de hashing para agrupar filas:
@@ -589,38 +720,54 @@ Internamente, \texttt{.groupby()} usa un algoritmo de hashing para agrupar filas
 
 Complejidad total: \( O(n \log n) \). Para 1M filas, esto toma $\sim$100ms en un CPU moderno.
 
-\textbf{Comparación}: Un bucle manual con diccionarios tomaría $\sim$5 segundos (50x más lento).
+\textbf{Comparación}: Un bucle manual con diccionarios tomaría $\sim$5 segundos (50x más lento).[web:23]
 \end{sciencebox}
 
 \newpage
-
-\section{Capítulo V: Series Temporales — El Corazón de la Industria}
+\section{Capítulo V: Series Temporales — El Corazón de la Industria 4.0}
 
 \subsection{Datetime como Index}
 
-En la industria, \textbf{el tiempo es el índice natural} de los datos. Convertir el DataFrame a índice temporal desbloquea operaciones avanzadas.
+En la industria, \textbf{el tiempo es el índice natural} de los datos. Convertir el DataFrame a índice temporal desbloquea operaciones avanzadas como \textbf{resampling} y \textbf{rolling windows}, esenciales para SPC (Statistical Process Control) y detección de anomalías en tiempo real.[web:23][web:31]
 
-\begin{lstlisting}[language=Python, caption={Configurar índice temporal}]
+\textbf{¿Por qué es crítico?} Los sistemas SCADA y sensores IoT generan datos timestamped. Sin índice temporal, pierdes la capacidad de hacer slicing por rangos de fecha y análisis de tendencias.[web:25][web:28]
+
+\begin{lstlisting}[language=Python, caption={Configurar índice temporal (estándar industrial)}]
 import pandas as pd
 
 # Cargar datos de sensor con timestamps
 df = pd.read_csv('temperatura_camara.csv')
 
-# PASO 1: Convertir columna a datetime
-df['timestamp'] = pd.to_datetime(df['timestamp'])
+# PASO 1: Convertir columna a datetime (maneja formatos mixtos)
+df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
 
 # PASO 2: Establecer como índice
-df = df.set_index('timestamp')
+df_ts = df.set_index('timestamp')
 
 # PASO 3: Ordenar por tiempo (¡importante!)
-df = df.sort_index()
+df_ts = df_ts.sort_index()
+
+# PASO 4: Verificar frecuencia (opcional, pero profesional)
+print("Frecuencia:", df_ts.index.freq)
+print("Rango temporal:", df_ts.index.min(), "→", df_ts.index.max())
 
 # Ahora puedes hacer selección por rangos de fecha:
-enero = df['2026-01-01':'2026-01-31']
-primera_semana = df['2026-01-01':'2026-01-07']
+enero = df_ts['2026-01-01':'2026-01-31']
+primera_semana = df_ts['2026-01-01':'2026-01-07 23:59']
+
+# Hábito pro: Verificar integridad temporal
+print(f"Total de registros: {len(df_ts)}")
+print(f"Gap máximo: {(df_ts.index[1:] - df_ts.index[:-1]).max()}")
 \end{lstlisting}
 
-\subsection{Resampling — Cambiar la Frecuencia}
+\begin{warningbox}{Problema común: Timezones}
+Si tus sensores están en UTC pero tu planta en Colombia (COT), usa:
+\begin{lstlisting}[language=Python]
+df_ts.index = df_ts.index.tz_localize('UTC').tz_convert('America/Bogota')
+\end{lstlisting}
+\end{warningbox}
+
+\subsection{Resampling — Cambiar la Frecuencia para Reportes}
 
 \begin{conceptbox}{Resampling vs Rolling}
 \begin{itemize}
@@ -629,61 +776,101 @@ primera_semana = df['2026-01-01':'2026-01-07']
 \end{itemize}
 \end{conceptbox}
 
-\begin{lstlisting}[language=Python, caption={Resampling para reportes diarios}]
+\begin{lstlisting}[language=Python, caption={Resampling para reportes diarios y alertas}]
 import pandas as pd
 
 # Datos de temperatura cada 30 segundos
 df = pd.read_csv('temp_pasteurizacion.csv', parse_dates=['timestamp'], index_col='timestamp')
 
-# RESAMPLE 1: Promedio diario
-temp_diaria = df['temperatura'].resample('D').mean()
+# RESAMPLE 1: Promedio diario (reporte ejecutivo)
+temp_diaria = df['temperatura'].resample('D').agg(['mean', 'min', 'max'])
 
-# RESAMPLE 2: Máximo por hora
+# RESAMPLE 2: Máximo por hora (detección de picos)
 temp_horaria_max = df['temperatura'].resample('H').max()
 
-# RESAMPLE 3: Múltiples agregaciones
+# RESAMPLE 3: Múltiples agregaciones para dashboard
 stats_diarias = df.resample('D').agg({
     'temperatura': ['mean', 'min', 'max', 'std'],
     'presion': 'mean'
-})
+}).round(2)
 
 # RESAMPLE 4: Contar eventos por turno (8 horas)
-eventos_turno = df.resample('8H').count()
+eventos_turno = df.resample('8H').size()
+
+# Verificación
+print("Estadísticas diarias:")
+print(stats_diarias.head())
+print(f"Eventos por turno: {eventos_turno.sum()}")
 \end{lstlisting}
 
-\subsection{Rolling Windows — Suavizar Ruido}
+\begin{industrybox}{Aplicación: Alertas automáticas por día}
+\begin{lstlisting}[language=Python]
+# Si el máximo diario supera 78°C, generar alerta
+alertas = temp_diaria['max'] > 78
+print(f"Días con alerta: {alertas.sum()}")
+\end{lstlisting}
+\end{industrybox}
 
-\begin{lstlisting}[language=Python, caption={Ventanas móviles para control de procesos}]
+\subsection{Rolling Windows — Suavizar Ruido para Control de Procesos}
+
+\begin{lstlisting}[language=Python, caption={Ventanas móviles para SPC (Statistical Process Control)}]
 import pandas as pd
 import matplotlib.pyplot as plt
 
 df = pd.read_csv('temperatura_real_time.csv', parse_dates=['timestamp'], index_col='timestamp')
 
 # Media móvil de 10 minutos (window=20 si los datos son cada 30 seg)
-df['temp_suavizada'] = df['temperatura'].rolling(window=20).mean()
+df['temp_suavizada'] = df['temperatura'].rolling(window=20, center=True).mean()
 
-# Desviación estándar móvil (detectar variabilidad)
-df['temp_std_movil'] = df['temperatura'].rolling(window=20).std()
+# Desviación estándar móvil (detectar variabilidad del proceso)
+df['temp_std_movil'] = df['temperatura'].rolling(window=20, center=True).std()
+
+# Límites de control (reglas Shewhart ±3σ)
+media_global = df['temperatura'].mean()
+std_global = df['temperatura'].std()
+df['limite_superior'] = media_global + 3 * std_global
+df['limite_inferior'] = media_global - 3 * std_global
 
 # Detectar derivas: si la std móvil supera 2°C, el proceso está inestable
 df['proceso_inestable'] = df['temp_std_movil'] > 2.0
 
-# Visualización
-plt.figure(figsize=(12, 6))
-plt.plot(df.index, df['temperatura'], alpha=0.3, label='Datos crudos')
+# Visualización SPC
+plt.figure(figsize=(14, 8))
+plt.plot(df.index, df['temperatura'], alpha=0.5, label='Datos crudos', linewidth=0.8)
 plt.plot(df.index, df['temp_suavizada'], linewidth=2, label='Media móvil 10 min')
+plt.axhline(media_global, color='green', linestyle='--', label='Media global')
+plt.axhline(df['limite_superior'].iloc[0], color='red', linestyle='--', alpha=0.7, label='Límite superior ±3σ')
+plt.axhline(df['limite_inferior'].iloc[0], color='red', linestyle='--', alpha=0.7, label='Límite inferior')
+plt.fill_between(df.index, df['limite_inferior'].iloc[0], df['limite_superior'].iloc[0],
+                 alpha=0.1, color='red')
 plt.legend()
-plt.title('Control de Temperatura - Pasteurización')
-plt.savefig('control_temperatura.png', dpi=150)
+plt.title('Control Estadístico de Procesos - Temperatura Pasteurización')
+plt.ylabel('Temperatura (°C)')
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.savefig('spc_temperatura.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+# Reporte de control
+print(f"Procesos inestables detectados: {df['proceso_inestable'].sum()}")
+print(f"Porcentaje fuera de control: {df['proceso_inestable'].mean()*100:.1f}%")
 \end{lstlisting}
+
+\begin{sciencebox}{SPC (Statistical Process Control) con Pandas}
+Las ventanas móviles implementan las \textbf{cartas de control} de Shewhart:
+\[
+\text{Límites} = \bar{x} \pm 3\sigma
+\]
+Donde $\bar{x}$ es la media histórica y $\sigma$ la desviación estándar. Esto es exactamente lo que usan las fábricas modernas para monitoreo 24/7.
+\end{sciencebox}
 
 \newpage
 
-\section{Capítulo VI: Merge y Trazabilidad — Conectar las Piezas}
+\section{Capítulo VI: Merge y Trazabilidad — Data Integration Engineering}
 
 \subsection{El Problema de la Trazabilidad}
 
-En agroindustria alimenticia, la trazabilidad es \textbf{un requisito legal} (HACCP, ISO 22000, FDA). Debes poder responder:
+En agroindustria alimenticia, la trazabilidad es \textbf{un requisito legal} (HACCP, ISO 22000, FDA 21 CFR Part 11). Debes poder responder en menos de 4 horas durante un recall:
 
 \begin{itemize}
     \item ¿Qué clientes recibieron lotes de un proveedor contaminado?
@@ -691,7 +878,7 @@ En agroindustria alimenticia, la trazabilidad es \textbf{un requisito legal} (HA
     \item ¿Qué materia prima se usó en un lote con defecto?
 \end{itemize}
 
-Esto requiere \textbf{cruzar múltiples tablas}.
+Esto requiere \textbf{Data Integration}: cruzar múltiples tablas heterogéneas usando \texttt{pd.merge()}. En Data Engineering, esto se conoce como \textbf{ETL de enriquecimiento}.[web:23][web:26]
 
 \subsection{Tipos de Merge}
 
@@ -710,102 +897,206 @@ Esto requiere \textbf{cruzar múltiples tablas}.
 \caption{Tipos de merge en Pandas}
 \end{table}
 
-\begin{lstlisting}[language=Python, caption={Caso HACCP: Rastreo de lote contaminado}]
+\textbf{¿Cuál usar en trazabilidad?} Siempre \texttt{left} cuando sigues la cadena de valor (lotes → pruebas → despachos).[web:23]
+
+\begin{lstlisting}[language=Python, caption={Caso HACCP: Pipeline completo de trazabilidad}]
 import pandas as pd
 
-# PASO 1: Cargar las 3 tablas
+# PASO 0: Verificar esquemas antes de merge (hábito profesional)
+print("=== ESQUEMAS ===")
 lotes = pd.read_csv('lotes_producidos.csv')
-# Columnas: id_lote, fecha_produccion, kg, linea
-
 pruebas = pd.read_csv('pruebas_laboratorio.csv')
-# Columnas: id_lote, ph, acidez, resultado
-
 despachos = pd.read_csv('despachos.csv')
-# Columnas: id_lote, cliente, fecha_envio, destino
 
-# PASO 2: Primera unión (lotes + pruebas)
+print("Lotes:", lotes['id_lote'].dtype, lotes['id_lote'].head())
+print("Pruebas:", pruebas['id_lote'].dtype, pruebas['id_lote'].head())
+print("Despachos:", despachos['id_lote'].dtype, despachos['id_lote'].head())
+
+# Estandarizar tipos de clave (crítico)
+for df_merge in [lotes, pruebas, despachos]:
+    df_merge['id_lote'] = df_merge['id_lote'].astype(str)
+
+print("\n=== POST ESTANDARIZACIÓN ===")
+print("Matches posibles:", len(set(lotes['id_lote']) & set(pruebas['id_lote'])))
+
+# PASO 1: Primera unión (lotes + pruebas)
 lotes_con_qa = pd.merge(lotes, pruebas, on='id_lote', how='left')
 
-# PASO 3: Segunda unión (agregar despachos)
+# PASO 2: Segunda unión (agregar despachos)
 trazabilidad_completa = pd.merge(lotes_con_qa, despachos, on='id_lote', how='left')
 
-# PASO 4: Identificar lotes problemáticos (pH < 4.3)
-lotes_problematicos = trazabilidad_completa[trazabilidad_completa['ph'] < 4.3]
+# PASO 3: Identificar lotes problemáticos (pH < 4.3 O acidez > 0.8)
+lotes_problematicos = trazabilidad_completa[
+    (trazabilidad_completa['ph'] < 4.3) |
+    (trazabilidad_completa['acidez'] > 0.8)
+]
 
-# PASO 5: Listar clientes afectados
-clientes_afectados = lotes_problematicos[['id_lote', 'cliente', 'destino', 'fecha_envio']]
-print(clientes_afectados)
+# PASO 4: KPIs del recall
+print(f"\n=== REPORT RECALL ===")
+print(f"Lotes problemáticos: {len(lotes_problematicos)}")
+print(f"Clientes afectados únicos: {lotes_problematicos['cliente'].nunique()}")
+print(f"Total kg afectados: {lotes_problematicos['kg'].sum():.0f}")
 
-# PASO 6: Exportar para reporte de recall
-clientes_afectados.to_csv('recall_lista_clientes.csv', index=False)
+# PASO 5: Exportar para reporte de recall (formato auditable)
+lotes_problematicos[['id_lote', 'cliente', 'destino', 'fecha_envio', 'ph', 'acidez']].to_csv(
+    'recall_lista_clientes.csv', index=False
+)
+
+# PASO 6: Resumen ejecutivo
+resumen_recall = lotes_problematicos.groupby('cliente').agg({
+    'id_lote': 'count',
+    'kg': 'sum'
+}).round(0)
+resumen_recall.to_csv('resumen_recall_clientes.csv')
+print("\nClientes más afectados:")
+print(resumen_recall.sort_values('kg', ascending=False))
 \end{lstlisting}
+
+\begin{industrybox}{Pipeline de Trazabilidad Industrial Completo}
+\begin{enumerate}
+    \item \textbf{Ingestión}: Cargar tablas desde ERP/LIMS/SCADA
+    \item \textbf{Data Quality}: Validar claves y tipos
+    \item \textbf{Enriquecimiento}: Merge secuencial (left joins)
+    \item \textbf{Alerts}: Filtrar por reglas de negocio
+    \item \textbf{Reporting}: Exportar para auditoría
+\end{enumerate}
+
+Este patrón se ejecuta diariamente en plantas certificadas.
+\end{industrybox}
 
 \begin{warningbox}{Error Común: Claves con tipos diferentes}
 Si \texttt{lotes['id\_lote']} es string y \texttt{pruebas['id\_lote']} es int, el merge fallará silenciosamente (0 matches).
 
-\textbf{Solución}: Siempre verificar tipos antes de merge:
-\begin{lstlisting}[language=Python]
-print(lotes['id_lote'].dtype)
-print(pruebas['id_lote'].dtype)
-
-# Si son diferentes, convertir:
-lotes['id_lote'] = lotes['id_lote'].astype(str)
-pruebas['id_lote'] = pruebas['id_lote'].astype(str)
-\end{lstlisting}
+\textbf{Solución profesional implementada arriba}: Siempre verificar y estandarizar tipos antes de merge.
 \end{warningbox}
+
+\begin{conceptbox}{MultiIndex para Trazabilidad Avanzada}
+Para cruces más complejos (ej: lote + fecha + proveedor), usa:
+\begin{lstlisting}[language=Python]
+df.set_index(['id_lote', 'fecha']).join(otra_tabla.set_index(['id_lote', 'fecha']))
+\end{lstlisting}
+\end{conceptbox}
 
 \newpage
 
-\section{Capítulo VII: Ingeniería de Características}
+\section{Capítulo VII: Ingeniería de Características — Feature Engineering Industrial}
 
 \subsection{Creación de Columnas Derivadas}
 
-\begin{lstlisting}[language=Python, caption={Variables calculadas para análisis}]
+La \textbf{ingeniería de características} (Feature Engineering) convierte datos crudos en variables predictivas útiles. En la industria, esto significa crear KPIs, indicadores de control y variables para Machine Learning.[web:23][web:26]
+
+\begin{lstlisting}[language=Python, caption={Feature Engineering para KPIs y predicción}]
 import pandas as pd
+import numpy as np
 
-df = pd.read_csv('produccion_diaria.csv', parse_dates=['fecha'])
+df = pd.read_csv('produccion_diaria.csv', parse_dates=['fecha', 'hora_inicio', 'hora_fin'])
 
-# 1. Duración de proceso (timedelta a minutos)
+# 1. Duración de proceso (timedelta a minutos) — Base para OEE
 df['duracion_min'] = (df['hora_fin'] - df['hora_inicio']).dt.total_seconds() / 60
 
-# 2. Rendimiento (kg/hora)
-df['rendimiento'] = df['kg_producidos'] / (df['duracion_min'] / 60)
+# 2. Rendimiento (kg/hora) — KPI principal
+df['rendimiento_kgh'] = df['kg_producados'] / (df['duracion_min'] / 60)
 
-# 3. Categorización de turnos
-def clasificar_turno(hora):
-    if 6 <= hora < 14:
-        return 'Mañana'
-    elif 14 <= hora < 22:
-        return 'Tarde'
-    else:
-        return 'Noche'
+# 3. OEE simplificado (Disponibilidad × Rendimiento × Calidad)
+df['disponibilidad'] = df['duracion_real'] / df['duracion_programada']
+df['calidad'] = (df['kg_producados'] / df['kg_programados']) * 100
+df['oee'] = df['disponibilidad'] * (df['rendimiento_kgh'] / df['rendimiento_ideal']) * df['calidad'] / 100
 
-df['turno'] = df['hora_inicio'].dt.hour.apply(clasificar_turno)
+# 4. Categorización de turnos (vectorizado, NO función)
+df['turno'] = pd.cut(df['hora_inicio'].dt.hour,
+                     bins=[0, 6, 14, 22, 24],
+                     labels=['Noche', 'Mañana', 'Tarde', 'Noche'],
+                     right=False)
 
-# 4. Día de la semana (útil para detectar patrones)
+# 5. Features temporales avanzadas
 df['dia_semana'] = df['fecha'].dt.day_name()
-
-# 5. Semana del año (agrupación temporal)
 df['semana'] = df['fecha'].dt.isocalendar().week
+df['es_fin_semana'] = df['fecha'].dt.weekday >= 5
+df['mes'] = df['fecha'].dt.month
+
+# 6. Features de interacción (producto de variables)
+df['linea_x_turno'] = df['linea'].astype('category').cat.codes * df['turno'].astype('category').cat.codes
+
+# Verificación de nuevas features
+print(df[['oee', 'rendimiento_kgh', 'turno', 'es_fin_semana']].describe())
 \end{lstlisting}
 
-\subsection{Discretización (Binning)}
+\begin{industrybox}{OEE como Feature Principal}
+El OEE es el KPI rey de Industria 4.0. Valores típicos:
+\begin{itemize}
+    \item \textbf{Mundial:} 85%
+    \item \textbf{Excelente:} >90%
+    \item \textbf{Mala señal:} <70%
+\end{itemize}
 
-\begin{lstlisting}[language=Python, caption={Clasificar variables continuas en categorías}]
+Tu feature engineering debe priorizar variables que impacten el OEE.
+\end{industrybox}
+
+\begin{conceptbox}{Vectorizado vs Apply: Rendimiento 100x}
+\begin{lstlisting}[language=Python]
+# MAL (lento)
+df['turno'] = df['hora'].apply(clasificar_turno)
+
+# BIEN (rápido)
+df['turno'] = pd.cut(df['hora'], bins=[0,6,14,22,24], labels=['N','M','T','N'])
+\end{lstlisting}
+\end{conceptbox}
+
+\subsection{Discretización (Binning) y Encoding Categórico}
+
+\begin{lstlisting}[language=Python, caption={Feature Engineering categórico para ML}]
 import pandas as pd
+import numpy as np
 
 df = pd.read_csv('analisis_ph.csv')
 
-# Clasificar pH en categorías
-bins = [0, 6.5, 7.0, 14]
-labels = ['Ácido', 'Neutro', 'Alcalino']
-df['categoria_ph'] = pd.cut(df['ph'], bins=bins, labels=labels)
+# 1. Binning de variables continuas (para reglas de negocio)
+bins_ph = [0, 4.3, 6.5, 7.0, 14]
+labels_ph = ['Crítico_Bajo', 'Ácido', 'Neutro_Bajo', 'Neutro_Alto']
+df['categoria_ph'] = pd.cut(df['ph'], bins=bins_ph, labels=labels_ph, include_lowest=True)
 
-# Clasificar temperatura de pasteurización en zonas
+# 2. Binning de temperatura con límites de spec
 bins_temp = [0, 71, 74, 77, 100]
-labels_temp = ['Bajo Spec', 'Óptimo Bajo', 'Óptimo Alto', 'Sobre Spec']
+labels_temp = ['Bajo_Spec', 'Optimo_Bajo', 'Optimo_Alto', 'Sobre_Spec']
 df['zona_temp'] = pd.cut(df['temp'], bins=bins_temp, labels=labels_temp)
+
+# 3. Encoding numérico para ML (category codes)
+df['linea_encoded'] = df['linea'].astype('category').cat.codes
+df['operario_encoded'] = df['operario'].astype('category').cat.codes
+
+# 4. Features polinómicas (interacciones cuadráticas)
+df['temp_cuadrado'] = df['temp'] ** 2  # Efecto no lineal
+df['ph_temp_interaccion'] = df['ph'] * df['temp']
+
+# 5. Binning cuantílico (distribución uniforme)
+df['rendimiento_quintil'] = pd.qcut(df['rendimiento'], q=5, labels=['Q1', 'Q2', 'Q3', 'Q4', 'Q5'])
+
+# Ver nuevas features
+print(df[['categoria_ph', 'zona_temp', 'rendimiento_quintil', 'linea_encoded']].head())
+print("\nDistribución de quintiles:")
+print(df['rendimiento_quintil'].value_counts())
 \end{lstlisting}
+
+\begin{sciencebox}{Por qué el Binning es poderoso en ML industrial}
+\begin{itemize}
+    \item \textbf{Interpretabilidad}: "Óptimo Alto" es más legible que "75.3°C"
+    \item \textbf{Robustez}: Reduce ruido en variables continuas
+    \item \textbf{Normalización}: Quintiles crean distribuciones uniformes
+\end{itemize}
+
+Usa \texttt{pd.cut()} para bins fijos (reglas de negocio) y \texttt{pd.qcut()} para bins por percentiles.
+\end{sciencebox}
+
+\begin{warningbox}{¡Cuidado con el Leakage!}
+Nunca uses información del futuro para crear features de entrenamiento:
+\begin{lstlisting}[language=Python]
+# MAL (data leakage)
+df['resultado_lag1'] = df['resultado'].shift(-1)
+
+# BIEN
+df['resultado_lag1'] = df['resultado'].shift(1)  # Solo pasado
+\end{lstlisting}
+\end{warningbox}
 
 \newpage
 
@@ -870,116 +1161,405 @@ df_limpio = limpiar_dataset('data/raw/sensores.csv', 'data/processed/sensores_cl
 \end{lstlisting}
 
 \newpage
+\section{Capítulo IX: Talleres Prácticos — Data Engineering Real}
 
-\section{Capítulo IX: Talleres Prácticos}
+\subsection{Taller 1: Dashboard de Productividad (OEE Analysis)}
 
-\subsection{Taller 1: Análisis de Línea de Producción}
+\begin{industrybox}{Caso: Planta de Procesamiento de Café — World Coffee Corp}
+Tienes 2000 lotes procesados en enero en 3 líneas automáticas (L1, L2, L3). La gerencia ejecutiva necesita identificar cuellos de botella y mejorar OEE.
 
-\begin{industrybox}{Caso: Planta de Procesamiento de Café}
-Tienes 2000 lotes procesados en enero en 3 líneas (L1, L2, L3). Debes analizar productividad, identificar cuellos de botella y generar reporte ejecutivo.
+\textbf{KPIs requeridos}: Rendimiento (kg/h), OEE, lotes atípicos.
 \end{industrybox}
 
-\textbf{Dataset}: \texttt{produccion\_cafe\_enero.csv}
+\textbf{Dataset}: \texttt{data/raw/produccion\_cafe\_enero.csv}
 
-\textbf{Tareas}:
+\textbf{Entregables obligatorios}:
 \begin{enumerate}
-    \item Calcular duración promedio por línea
-    \item Identificar el turno más lento
-    \item Detectar lotes con duración > 2 desviaciones estándar
-    \item Generar tabla resumen con productividad (kg/hora)
+    \item Calcular duración promedio por línea y turno
+    \item Crear feature \texttt{rendimiento\_kgh} = kg / horas
+    \item Identificar el turno más lento (mayor duración media)
+    \item Detectar lotes atípicos (duración > media + 2σ por línea)
+    \item \textbf{Gráfico}: Boxplot de rendimiento por línea
+    \item \textbf{Tabla resumen}: Líderboard de líneas (OEE estimado)
+    \item \textbf{Exportar}: \texttt{analisis\_productividad.xlsx} con 3 hojas
 \end{enumerate}
 
-\subsection{Taller 2: Control de Calidad Temporal}
+\textbf{Criterio de éxito}: Tabla con OEE >85\% para la mejor línea.
 
-\begin{industrybox}{Caso: Pasteurización de Leche}
-Sensor registra temperatura cada 30 segundos durante una semana. Debes detectar derivas, generar alertas y producir gráficos de control.
+\subsection{Taller 2: Sistema de Alertas SPC (Statistical Process Control)}
+
+\begin{industrybox}{Caso: Pasteurización de Leche — DairyTech LATAM}
+Sensor registra temperatura cada 30 segundos durante 7 días. Debes implementar control estadístico de procesos y generar alertas automáticas.
+
+\textbf{Specs}: Temperatura debe mantenerse [72-76°C]. Desviaciones >2°C = proceso inestable.
 \end{industrybox}
 
-\textbf{Dataset}: \texttt{temperatura\_pasteurizacion\_semana.csv}
+\textbf{Dataset}: \texttt{data/raw/temperatura\_pasteurizacion\_semana.csv}
 
-\textbf{Tareas}:
+\textbf{Entregables obligatorios}:
 \begin{enumerate}
-    \item Resamplear a promedios de 10 minutos
-    \item Calcular desviación estándar móvil (ventana 20 lecturas)
-    \item Detectar periodos con temperatura fuera de [72-76°C] por >5 minutos
-    \item Visualizar con matplotlib
+    \item Convertir \texttt{timestamp} a índice datetime y resamplear a 10 minutos
+    \item Calcular media móvil (20 puntos) y desviación móvil
+    \item Implementar límites de control (±3σ de la media global)
+    \item Detectar y contar periodos inestables (>2°C std móvil por >30 min)
+    \item \textbf{Gráfico SPC}: Línea cruda + suavizada + límites de control
+    \item \textbf{Alerta}: CSV con timestamps de inestabilidad
+    \item \textbf{Reporte}: \% tiempo en control
 \end{enumerate}
 
-\subsection{Taller 3: Trazabilidad y Recall}
+\textbf{Criterio de éxito}: Menos del 5\% del tiempo fuera de control.
 
-\begin{industrybox}{Caso HACCP: Lote Contaminado}
-Se detectó contaminación microbiológica en el lote L20260115\_042. Debes rastrear qué clientes lo recibieron y generar lista para recall.
+\subsection{Taller 3: Pipeline de Recall HACCP (Data Integration)}
+
+\begin{industrybox}{Caso HACCP: Recall Urgente — Lote L20260115\_042}
+INVIMA ordenó recall inmediato del lote contaminado L20260115\_042. Tienes 4 horas para generar lista completa de clientes afectados.
+
+\textbf{Requisitos legales}: Trazabilidad completa en <4 horas (Reglamento UE 178/2002).
 \end{industrybox}
 
-\textbf{Datasets}:
+\textbf{Datasets} (\texttt{data/raw/}):
 \begin{itemize}
-    \item \texttt{lotes\_producidos.csv}
-    \item \texttt{pruebas\_microbiologia.csv}
-    \item \texttt{despachos\_clientes.csv}
+    \item \texttt{lotes\_producidos.csv} (id\_lote, fecha, linea, kg, proveedor)
+    \item \texttt{pruebas\_microbiologia.csv} (id\_lote, ph, coliformes, resultado)
+    \item \texttt{despachos\_clientes.csv} (id\_lote, cliente, direccion, fecha\_envio)
 \end{itemize}
 
-\textbf{Tareas}:
+\textbf{Entregables obligatorios}:
 \begin{enumerate}
-    \item Merge de las 3 tablas por \texttt{id\_lote}
-    \item Filtrar lotes con resultado "Contaminado"
-    \item Generar CSV con: cliente, dirección, fecha\_envío, kg\_afectados
-    \item Crear reporte LaTeX con tabla de afectados
+    \item \textbf{Pipeline merge}: 3 tablas → tabla trazabilidad completa (left joins)
+    \item Verificar y estandarizar tipos de \texttt{id\_lote} antes de merge
+    \item Filtrar lotes con \texttt{resultado == 'Contaminado'} o \texttt{coliformes > 10}
+    \item Generar \texttt{recall\_clientes.csv}: cliente, direccion, kg\_afectados, fecha\_envio
+    \item \textbf{Resumen ejecutivo}: Tabla agregada por cliente (kg totales)
+    \item \textbf{Log de calidad}: Reporte de completitud del merge (\% matches)
+    \item \textbf{Visualización}: Sankey diagram clientes → kg afectados
 \end{enumerate}
+
+\textbf{Criterio de éxito}: 100\% trazabilidad del lote contaminado.
+
+\subsection{Taller 4: Feature Engineering Predictivo (Bonus Avanzado)}
+
+\begin{industrybox}{Caso: Predicción de Fallos — Mantenimiento Predictivo}
+Crear features para modelo que prediga lotes con alto riesgo de rechazo.
+
+\textbf{Target}: \texttt{resultado == 'Rechazado'}
+\end{industrybox}
+
+\textbf{Tareas bonus (+20 puntos)}:
+\begin{enumerate}
+    \item Crear 10 features nuevas (lags, rolling stats, interacciones)
+    \item Binning de variables continuas (ph, temp, rendimiento)
+    \item Encoding categórico (línea, proveedor, turno)
+    \item Guardar \texttt{X\_train.csv}, \texttt{y\_train.csv} listo para scikit-learn
+\end{enumerate}
+
+\subsection{Instrucciones de Entrega}
+
+\textbf{Formato notebook único} \texttt{talleres\_semana03.ipynb} con:
+\begin{itemize}
+    \item Sección por taller claramente marcada
+    \item Código comentado + explicaciones
+    \item Visualizaciones profesionales (títulos, leyendas, colores institucionales)
+    \item Todos los archivos generados en \texttt{outputs/}
+    \item Log de calidad en \verb|logs/data_quality.log|
+\end{itemize}
+
+\textbf{Fecha límite}: Viernes 23:59. \textbf{Puntaje extra}: Pipeline automatizado con funciones reutilizables.
+
 \newpage
-\section{Capítulo X: Visualización Profesional con Matplotlib}
+\section{Capítulo X: Visualización Profesional --- Dashboards Ejecutivos}
 
-\subsection{Gráficos de Control Estadístico (SPC)}
+\subsection{Gráficos de Control Estadístico (SPC) --- Estándar ISO 7870-2}
 
-Los gráficos SPC son fundamentales en industria alimenticia para detectar derivas de proceso.
+Los gráficos SPC son \textbf{obligatorios} en sistemas de gestión de calidad (ISO 9001, ISO 22000). ISO 7870-2 establece una guía para el enfoque de gráficos de control de Shewhart aplicado al control estadístico de procesos.[web:60][web:61]
 
-\begin{lstlisting}[language=Python, caption={Gráfico de control}]
+\begin{lstlisting}[language=Python, caption={Dashboard SPC profesional}, upquote=true]
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
+import seaborn as sns
 
-df = pd.read_csv('ph_lotes.csv')
-media = df['ph'].mean()
-std = df['ph'].std()
-UCL = media + 3*std
-LCL = media - 3*std
+# Configuracion profesional
+plt.style.use("seaborn-v0_8-whitegrid")
+sns.set_palette("husl")
 
-fig, ax = plt.subplots(figsize=(14, 6))
-ax.scatter(df.index, df['ph'], alpha=0.7)
-ax.axhline(y=media, color='green', linewidth=2, label='Media')
-ax.axhline(y=UCL, color='red', linestyle='--', label='UCL')
-ax.axhline(y=LCL, color='red', linestyle='--', label='LCL')
-ax.legend()
-plt.savefig('spc.png', dpi=300)
+# Datos de control de pH (lotes 1-200)
+df = pd.read_csv("data/raw/ph_lotes.csv", parse_dates=["fecha"], index_col="fecha")
+df = df.sort_index()
+
+# Calcular limites de control
+media = df["ph"].mean()
+std = df["ph"].std()
+UCL = media + 3 * std
+LCL = media - 3 * std
+media_20 = df["ph"].rolling(20, center=True).mean()
+
+# Grafico principal SPC
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(15, 10), sharex=True)
+
+# 1. Grafico de control principal
+ax1.scatter(df.index, df["ph"], alpha=0.6, s=30, color="steelblue", label="Datos")
+ax1.plot(df.index, media_20, color="orange", linewidth=2, label="Media movil 20 lotes")
+ax1.axhline(y=media, color="green", linewidth=3, label=f"Media = {media:.2f}")
+ax1.axhline(y=UCL, color="red", linestyle="--", linewidth=2, label=f"UCL = {UCL:.2f}")
+ax1.axhline(y=LCL, color="red", linestyle="--", linewidth=2, label=f"LCL = {LCL:.2f}")
+ax1.fill_between(df.index, LCL, UCL, alpha=0.1, color="red")
+ax1.set_ylabel("pH", fontsize=12)
+ax1.legend(loc="upper right")
+ax1.set_title("Control Estadistico de Procesos - pH Lotes Cafe\nISO 7870-2",
+              fontsize=14, fontweight="bold")
+ax1.grid(True, alpha=0.3)
+
+# 2. Senales especiales (reglas de Western Electric)
+outliers = df[(df["ph"] > UCL) | (df["ph"] < LCL)]
+ax1.scatter(outliers.index, outliers["ph"], color="red", s=100, marker="X",
+            label=f"Senales especiales (n={len(outliers)})", zorder=5)
+
+# 3. Grafico de residuos (diagnostico)
+residuos = df["ph"] - media
+ax2.plot(df.index, residuos, color="purple", linewidth=1.5)
+ax2.axhline(y=0, color="black", linestyle="-", alpha=0.5)
+ax2.axhline(y=2 * std, color="orange", linestyle="--", alpha=0.7)
+ax2.axhline(y=-2 * std, color="orange", linestyle="--", alpha=0.7)
+ax2.set_ylabel("Residuos (pH - Media)", fontsize=12)
+ax2.set_xlabel("Fecha", fontsize=12)
+ax2.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig("outputs/spc_ph_professional.png", dpi=300, bbox_inches="tight")
+plt.show()
+
+# Tabla resumen SPC
+spc_summary = pd.DataFrame({
+    "Metrica": ["Media", "Std", "UCL", "LCL", "Senales especiales", "% en control"],
+    "Valor": [f"{media:.2f}", f"{std:.2f}", f"{UCL:.2f}", f"{LCL:.2f}",
+              len(outliers), f"{(1 - len(outliers) / len(df)) * 100:.1f}%"]
+})
+print(spc_summary)
+spc_summary.to_csv("outputs/spc_summary.csv", index=False)
 \end{lstlisting}
 
-\newpage
-\section{Capítulo XI: Estadística con SciPy}
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Señal especial} & \textbf{Código de detección} \\
+\midrule
+Punto fuera de límites & \texttt{|x| > 3$\sigma$} \\
+2 de 3 puntos $>$ 2$\sigma$ & Conteo en ventana de 3 \\
+4 de 5 puntos $>$ 1$\sigma$ & Conteo en ventana de 5 \\
+8 puntos consecutivos del mismo lado & Secuencia \\
+Tendencia de 6 puntos & Secuencia creciente/decreciente \\
+\bottomrule
+\end{tabular}
+\caption{Ejemplos de reglas de Western Electric para detectar causas especiales}
+\end{table}
 
-\subsection{Pruebas de Hipótesis}
+\subsection{Dashboards ejecutivos multi-panel}
 
-\begin{lstlisting}[language=Python, caption={t-test entre turnos}]
-from scipy import stats
+\begin{lstlisting}[language=Python, caption={Dashboard OEE de 4 paneles}, upquote=true]
+import matplotlib.pyplot as plt
 import pandas as pd
+import seaborn as sns
 
-df = pd.read_csv('defectos.csv')
-diurno = df[df['turno'] == 'Diurno']['defectos']
-nocturno = df[df['turno'] == 'Nocturno']['defectos']
+plt.style.use("seaborn-v0_8-whitegrid")
 
-t_stat, p_value = stats.ttest_ind(diurno, nocturno)
+df = pd.read_csv("data/raw/produccion_resumen.csv")
 
-if p_value < 0.05:
-    print("Diferencia significativa entre turnos")
+fig = plt.figure(figsize=(16, 12))
+
+# Panel 1: OEE por linea (barras)
+ax1 = plt.subplot(2, 2, 1)
+sns.barplot(data=df, x="linea", y="oee", palette="viridis", ax=ax1)
+ax1.set_title("OEE por Linea de Produccion", fontweight="bold")
+ax1.set_ylabel("OEE (%)")
+
+# Panel 2: Boxplot rendimiento por turno
+ax2 = plt.subplot(2, 2, 2)
+sns.boxplot(data=df, x="turno", y="rendimiento_kgh", ax=ax2)
+ax2.set_title("Distribucion de rendimiento por turno")
+ax2.set_ylabel("kg/hora")
+
+# Panel 3: Heatmap rechazos (linea x turno)
+pivot_rechazos = df.pivot_table(values="rechazos", index="linea", columns="turno", aggfunc="sum")
+ax3 = plt.subplot(2, 2, 3)
+sns.heatmap(pivot_rechazos, annot=True, cmap="Reds", ax=ax3, cbar_kws={"label": "Rechazos"})
+ax3.set_title("Heatmap de rechazos: linea x turno")
+
+# Panel 4: Evolucion temporal OEE
+ax4 = plt.subplot(2, 2, 4)
+sns.lineplot(data=df, x="fecha", y="oee", hue="linea", marker="o", ax=ax4)
+ax4.set_title("Evolucion de OEE por linea")
+ax4.tick_params(axis="x", rotation=45)
+
+plt.suptitle("Dashboard Ejecutivo - Planta Cafe Enero 2026", fontsize=16, fontweight="bold")
+plt.tight_layout()
+plt.savefig("outputs/dashboard_oee.png", dpi=300, bbox_inches="tight")
+plt.show()
 \end{lstlisting}
 
+\begin{conceptbox}[Estándares de visualización profesional]
+\begin{itemize}
+    \item \textbf{Colores institucionales}: Usar la paleta de la empresa.
+    \item \textbf{Títulos descriptivos}: No usar solo ``Gráfico 1''.
+    \item \textbf{Unidades claras}: Incluir unidades en ejes y leyendas.
+    \item \textbf{DPI 300}: Recomendado para impresión ejecutiva.
+    \item \textbf{Formato PNG/PDF}: Evitar JPG por pérdida de calidad.
+\end{itemize}
+\end{conceptbox}
+
+\begin{warningbox}[Errores comunes en dashboards]
+\begin{itemize}
+    \item Ejes truncados (sin 0).
+    \item Colores sin significado (rojo no siempre significa ``malo'').
+    \item Demasiados datos (por ejemplo, más de 1000 puntos por gráfico).
+    \item Falta de grilla o contextualización.
+\end{itemize}
+\end{warningbox}
+
 \newpage
+\section{Capítulo XI: Estadística Industrial con SciPy --- Toma de Decisiones Basada en Datos}
+
+\subsection{Pruebas estadísticas para ingeniería de procesos}
+
+En ingeniería industrial, las pruebas de hipótesis validan si las diferencias observadas son \textbf{estadísticamente significativas} o solo ruido aleatorio. Esto es crucial para justificar inversiones en mejora de procesos.
+
+\begin{lstlisting}[language=Python, caption={Paquete completo de pruebas industriales}, upquote=true]
+import pandas as pd
+import numpy as np
+from scipy import stats
+import matplotlib.pyplot as plt
+
+# Dataset: Defectos por turno en 3 líneas de producción
+df = pd.read_csv("data/raw/defectos_por_turno.csv")
+
+print("=== ANALISIS ESTADISTICO COMPLETO ===\n")
+
+# 1. T-TEST: ¿Diferencia significativa entre turnos?
+print("1. T-TEST: Defectos Manana vs Noche")
+manana = df[df["turno"] == "Mañana"]["defectos_por_1000"]
+noche = df[df["turno"] == "Noche"]["defectos_por_1000"]
+
+t_stat, p_value = stats.ttest_ind(manana, noche, equal_var=False)  # Welch t-test
+print(f"  t = {t_stat:.3f}, p = {p_value:.4f}")
+print(f"  {'Rechazar H0' if p_value < 0.05 else 'No hay diferencia significativa'}")
+print(f"  Conclusion: {'' if p_value >= 0.05 else 'El turno noche tiene mas defectos'}")
+
+# 2. ANOVA: ¿Diferencias entre las 3 líneas?
+print("\n2. ANOVA: Diferencias entre lineas L1, L2, L3")
+l1 = df[df["linea"] == "L1"]["defectos_por_1000"]
+l2 = df[df["linea"] == "L2"]["defectos_por_1000"]
+l3 = df[df["linea"] == "L3"]["defectos_por_1000"]
+
+f_stat, p_anova = stats.f_oneway(l1, l2, l3)
+print(f"  F = {f_stat:.3f}, p = {p_anova:.4f}")
+if p_anova < 0.05:
+    # Post-hoc Tukey (si ANOVA rechaza H0)
+    from statsmodels.stats.multicomp import pairwise_tukeyhsd
+    tukey = pairwise_tukeyhsd(df["defectos_por_1000"], df["linea"], alpha=0.05)
+    print("  Tukey HSD - Diferencias significativas:")
+    print(tukey)
+
+# 3. Prueba de normalidad (Shapiro-Wilk)
+# Nota: para N > 5000, SciPy advierte que el p-value puede no ser preciso.
+print("\n3. NORMALIDAD: ¿Datos normales para usar t-test?")
+muestra = df["defectos_por_1000"].dropna().sample(n=min(5000, df["defectos_por_1000"].dropna().shape[0]),
+                                                 random_state=42)
+stat_shapiro, p_shapiro = stats.shapiro(muestra)
+print(f"  Shapiro-Wilk: W = {stat_shapiro:.3f}, p = {p_shapiro:.4f}")
+print(f"  {'Normal' if p_shapiro > 0.05 else 'No normal (usar test no parametrico)'}")
+
+# 4. Prueba no parametrica (si datos no normales): Mann-Whitney U
+if p_shapiro < 0.05:
+    stat_u, p_u = stats.mannwhitneyu(manana, noche, alternative="two-sided")
+    print(f"\n4. Mann-Whitney U (no parametrico): U = {stat_u:.1f}, p = {p_u:.4f}")
+
+# 5. Correlacion y prueba de significancia
+print("\n5. CORRELACION: Duracion vs Defectos")
+corr_coef, p_corr = stats.pearsonr(df["duracion_min"], df["defectos_por_1000"])
+print(f"  Pearson r = {corr_coef:.3f}, p = {p_corr:.4f}")
+print(f"  {'Correlacion significativa' if p_corr < 0.05 else 'Sin correlacion'}")
+\end{lstlisting}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lllp{4cm}@{}}
+\toprule
+\textbf{Prueba} & \textbf{H0} & \textbf{p < 0.05} & \textbf{Decisión industrial} \\
+\midrule
+t-test & $\mu_1 = \mu_2$ & Rechazar & Cambiar proceso \\
+ANOVA & $\mu_1 = \mu_2 = \mu_3$ & Rechazar & Investigar diferencias \\
+Shapiro & Distribución normal & Rechazar & Usar test no paramétrico \\
+Pearson & $\rho = 0$ & Rechazar & Correlación causal posible \\
+\bottomrule
+\end{tabular}
+\caption{Interpretación industrial de pruebas de hipótesis}
+\end{table}
+
+\subsection{Tests de control de calidad específicos}
+
+\begin{lstlisting}[language=Python, caption={Tests para ingeniería de procesos}, upquote=true]
+# 6. Prueba de homogeneidad de varianzas (Levene)
+levene_stat, levene_p = stats.levene(l1, l2, l3)
+print(f"\n6. LEVENE (homogeneidad de varianzas): p = {levene_p:.4f}")
+print(f"  {'Varianzas iguales' if levene_p > 0.05 else 'Varianzas diferentes (Welch ANOVA)'}")
+
+# 7. Prueba Chi-cuadrado: Asociacion categorica (linea vs rechazo)
+tabla_contingencia = pd.crosstab(df["linea"], df["rechazado"])
+chi2, p_chi2, dof, expected = stats.chi2_contingency(tabla_contingencia)
+print(f"\n7. CHI2 (linea vs rechazo): chi2 = {chi2:.2f}, p = {p_chi2:.4f}")
+print("  Tabla esperada vs observada:")
+print(pd.DataFrame(expected, index=tabla_contingencia.index,
+                   columns=tabla_contingencia.columns).round(1))
+
+# 8. CpK (Capability Index) - Capacidad de proceso
+def calcular_cpk(data, limite_inf, limite_sup):
+    media = data.mean()
+    std = data.std()
+    cpk_inf = (media - limite_inf) / (3 * std)
+    cpk_sup = (limite_sup - media) / (3 * std)
+    return min(cpk_inf, cpk_sup)
+
+# Especificaciones pH: [6.2, 6.8]
+cpk_ph = calcular_cpk(df["ph"].dropna(), 6.2, 6.8)
+print(f"\n8. CpK pH [6.2-6.8]: {cpk_ph:.3f}")
+print("  Interpretacion: " +
+      ("Excelente (>1.67)" if cpk_ph > 1.67 else
+       "Bueno (1.33-1.67)" if cpk_ph > 1.33 else
+       "Marginal (1.00-1.33)" if cpk_ph > 1.0 else "Fuera de especificacion"))
+\end{lstlisting}
+
+\begin{industrybox}{Interpretación para gerencia}
+\begin{itemize}
+    \item \textbf{p < 0.05} = Acción requerida (mejora de proceso)
+    \item \textbf{CpK > 1.33} = Proceso capaz (Six Sigma)
+    \item \textbf{Correlación |r| > 0.7} = Variable candidata para optimización
+\end{itemize}
+
+Siempre comunicar: tamaño muestral, supuestos de la prueba e interpretación práctica.
+\end{industrybox}
+
+\begin{conceptbox}[Workflow estadístico industrial]
+\begin{enumerate}
+    \item \textbf{Exploración visual} (histogramas, boxplots)
+    \item \textbf{Prueba de normalidad} (Shapiro-Wilk)
+    \item \textbf{Test apropiado} (paramétrico/no paramétrico)
+    \item \textbf{Post-hoc} si es necesario (Tukey)
+    \item \textbf{Reporte ejecutivo} con p-value + interpretación práctica
+\end{enumerate}
+\end{conceptbox}
+
+\newpage
+
 \section{Capítulo XII: SQL para Ciencia de Datos}
 
-\subsection{Conexión y Queries}
+\subsection{Conexión y consultas}
 
-\begin{lstlisting}[language=Python, caption={Pandas + SQL}]
+\begin{lstlisting}[language=Python, caption={Pandas + SQL}, upquote=true]
 import pandas as pd
 from sqlalchemy import create_engine
 
-engine = create_engine('postgresql://user:pass@localhost/planta')
+engine = create_engine("postgresql://user:pass@localhost/planta")
 
 df = pd.read_sql_query(
     "SELECT linea, AVG(kg) FROM lotes GROUP BY linea",
@@ -987,9 +1567,9 @@ df = pd.read_sql_query(
 )
 \end{lstlisting}
 
-\section*{Referencias y Recursos}
+\section*{Referencias y recursos}
 
-\subsection*{Bibliografía Científica}
+\subsection*{Bibliografía científica}
 
 \begin{enumerate}
     \item McKinney, W. (2017). \textit{Python for Data Analysis}. 2nd Edition. O'Reilly Media.
@@ -997,15 +1577,15 @@ df = pd.read_sql_query(
     \item Pandas Development Team (2024). \textit{Pandas Documentation}. \url{https://pandas.pydata.org/docs/}
 \end{enumerate}
 
-\subsection*{Estándares Industriales}
+\subsection*{Estándares industriales}
 
 \begin{itemize}
-    \item ISO 22000:2018 — Food Safety Management Systems
-    \item FDA 21 CFR Part 11 — Electronic Records and Signatures
-    \item Codex Alimentarius — HACCP Principles
+    \item ISO 22000:2018 -- Food Safety Management Systems
+    \item FDA 21 CFR Part 11 -- Electronic Records and Signatures
+    \item Codex Alimentarius -- HACCP Principles
 \end{itemize}
 
-\subsection*{Datasets de Práctica}
+\subsection*{Datasets de práctica}
 
 \begin{itemize}
     \item Kaggle: Food Safety Inspections
